@@ -8,13 +8,13 @@ SHELL := /bin/bash
 all: GalaxySpatial
 
 %: %.cpp
-	g++ -std=c++17 -O0 -g3 -ggdb -fno-eliminate-unused-debug-types -Wall -Wextra -pedantic -I../rapidjson/include/ -I../zstr/src -o $@ $^ -lz -lstdc++fs -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu/  -l:libboost_iostreams.a -lbz2 -lpthread -ltarantool -lspatialindex_c -lspatialindex -lpqxx -lpq -fsanitize=address
+	g++ -std=c++17 -O0 -g3 -ggdb -fno-eliminate-unused-debug-types -Wall -Wextra -pedantic -I../rapidjson/include/ -I../zstr/src -o $@ $^ -lz -lstdc++fs -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu/  -l:libboost_iostreams.a -lbz2 -lspatialindex_c -lspatialindex -fsanitize=address
 
 clean: GalaxySpatial
 	rm -rf $^
 
 production:
-	g++ -std=c++17 -O3 -msseregparm -flto -msse -msse2 -msse3 -msse4.2 -minline-all-stringops -mfpmath=sse -march=native -Wall -Wextra -pedantic -I../rapidjson/include/ -I../zstr/src -o GalaxySpatial  GalaxySpatial.cpp -lz -lstdc++fs -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu  -l:libboost_iostreams.a -lbz2 -lpthread -ltarantool -lspatialindex_c -lspatialindex -lpqxx -lpq
+	g++ -std=c++17 -O3 -msseregparm -flto -msse -msse2 -msse3 -msse4.2 -minline-all-stringops -mfpmath=sse -march=native -Wall -Wextra -pedantic -I../rapidjson/include/ -I../zstr/src -o GalaxySpatial  GalaxySpatial.cpp -lz -lstdc++fs -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu  -l:libboost_iostreams.a -lbz2 -lspatialindex_c -lspatialindex
 
 gperf:
 	gperf -t galaxy.gperf --output-file=GalaxyHash.hpp
