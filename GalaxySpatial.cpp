@@ -19,10 +19,6 @@
 #include "BodySubtypesHash.hpp"
 #include "GalaxyStructs.hpp"
 
-#include <spatialindex/capi/sidx_api.h>
-#include <spatialindex/capi/sidx_impl.h>
-#include <spatialindex/capi/sidx_config.h>
-
 #define REPORT_SIZE 100000
 #define CLOSE_STAR 100
 #define LIMIT 0
@@ -31,7 +27,6 @@ using namespace std;
 using namespace std::experimental;
 using namespace std::chrono;
 using namespace rapidjson;
-using namespace SpatialIndex;
 
 inline string getHeirarchy(vector<ParsedField> parsedFields) {
     string current = "";
@@ -390,7 +385,7 @@ class Handler {
         }
 };
 
-class MyDataStream : public IDataStream {
+class MyDataStream {
 protected:
     string filename;
     boost::iostreams::filtering_istream inputStream;
@@ -416,34 +411,24 @@ public:
 
         this->readNextEntry();
     }
-    ~MyDataStream() override
+    ~MyDataStream()
     {
         if (this->m_pNext != NULL) delete this->m_pNext;
     }
 
-    IData* getNext() override
+    System* getNext()
     {
         if (this->m_pNext == NULL) return NULL;
 
-        RTree::Data* ret = this->m_pNext;
+        System* ret = this->m_pNext;
         this->m_pNext = NULL;
         this->readNextEntry();
         return ret;
     }
 
-    bool hasNext() override
+    bool hasNext()
     {
         return (this->m_pNext != NULL);
-    }
-
-    uint32_t size() override
-    {
-        throw Tools::NotSupportedException("Operation not supported.");
-    }
-
-    void rewind() override
-    {
-        throw Tools::NotSupportedException("Operation not supported.");
     }
 
     void readNextEntry()
@@ -488,9 +473,7 @@ public:
 
                 // cerr << this->handler.system.id64 << "(" << this->handler.system.x << "," << this->handler.system.y << "," << this->handler.system.z << ") " << endl;
 
-                double coords[] = {this->handler.system.x,this->handler.system.y,this->handler.system.z};
-                Region region(coords, coords, 3);
-                this->m_pNext = new RTree::Data(sizeof(System), reinterpret_cast<uint8_t*>(&this->handler.system), region, this->handler.system.id64);
+                this->m_pNext = new System(this->handler.system);
                 return;
             }
         }
@@ -507,42 +490,25 @@ public:
     
     }
 
-    RTree::Data* m_pNext;
+    System* m_pNext;
 };
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        cerr << "Usage: " << argv[0] << " <galaxy filename> <output_filename>" << endl;
+    if (argc != 2) {
+        cerr << "Usage: " << argv[0] << " <galaxy filename>" << endl;
         exit(1);
     }
     
-    char* pszVersion = SIDX_Version();
-    cerr << "libspatialindex version: " << pszVersion << endl;
-    free(pszVersion);
-
     MyDataStream stream(argv[1]);
+    System* system = stream.getNext();
 
-    string filename = argv[2];
-    IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(filename, 4096);
-    StorageManager::IBuffer* file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
-
-    id_type indexIdentifier;
-
-    ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(
-        RTree::BLM_STR, stream, *file, 0.9, 64, 1024*64, 3, SpatialIndex::RTree::RV_RSTAR, indexIdentifier
-    );
-    tree->flush();
-    file->flush();
-    diskfile->flush();
-
-    IStatistics* stats;
-    tree->getStatistics(&stats);
-    cerr << "Nodes: " << stats->getNumberOfNodes() << " Data: " << stats->getNumberOfData() << endl;
-    delete stats;
-
-    delete diskfile;
-
-    cerr << "Index identifier: " << indexIdentifier << endl;
+    while (system != NULL) {
+        if (system->isNeutron && system->isScoopable) {
+            cout << system->id64 << "(" << system->x << "," << system->y << "," << system->z << ")" << endl;
+        }
+        delete system;
+        system = stream.getNext();
+    }
 
 }
